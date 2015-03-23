@@ -1,19 +1,18 @@
 #
 #	Students	: Philip Bouman , Alex Khawalid
 #	Studentnr	: 10668667		, 10634207
-#	Assignment A: step 4 NTMI
+#	Assignment B: step 2 NTMI
 #	Date		: 06-02-2015
 #
 # Command-line:
-# (1): python assignment4.py -c [trainset] -t [testset] -s [yes|no] -p [predictedtagsfile]
-import re
+# (1): python bstep2.py -i [non-binarized] -o [binarized] -c [number] -v [number]
 from optparse import OptionParser
 
 # parse options
 parser = OptionParser()
 parser.add_option("-i", "--input", dest="input")
 parser.add_option("-o", "--output", dest="output")
-parser.add_option("-y", "--horizontal", dest="horizontal")
+parser.add_option("-c", "--horizontal", dest="horizontal")
 parser.add_option("-v", "--vertical", dest="vertical")
 
 (options,args) = parser.parse_args()
@@ -22,7 +21,7 @@ parser.add_option("-v", "--vertical", dest="vertical")
 if options.input:
 	inputfile = options.input
 else:
-	inputfile = "data/train20.txt"
+	inputfile = "data/small.txt"
 
 # if output assigned
 if options.output:
@@ -30,20 +29,19 @@ if options.output:
 else:
 	outputfile = "test.txt"
 
-# if output assigned
-if options.output:
+# if horizontal assigned
+if options.horizontal:
 	horder = options.horizontal
 else:
 	horder = 2
 
-# if output assigned
-if options.output:
+# if vertical assigned
+if options.vertical:
 	vorder = options.vertical
 else:
 	vorder = 2
 
-
-
+# read files and init output file
 inputfile = open(inputfile, 'r')
 inputlines = inputfile.readlines()
 inputfile.close()
@@ -90,12 +88,17 @@ def getSubStrings(line):
 
 	return elements
 
+# get tag from terminal node
 def getTerminalTag(element):
 	elements = element.split()
 	return elements[0][1:]
 
+# update list of siblings
+# given a list if the number of siblings is
+# lower than horizontal order, append
+# otherwise discard first element and then append
 def updateSibilings(siblings, newsib):
-	if len(siblings) < 2:
+	if len(siblings) < horder:
 		siblings.append(newsib)
 	else:
 		siblings.append(newsib)
@@ -103,7 +106,9 @@ def updateSibilings(siblings, newsib):
 	return siblings
 
 
-def binarizeLeft(line, parent, siblings):
+# binarize line
+# parent = tag of parent node
+def binarizeLeft(line, parent):
 	# init variables
 	left = " ("
 	right = ")"
@@ -112,71 +117,73 @@ def binarizeLeft(line, parent, siblings):
 
 	# get tree elements
 	elements = getSubStrings(line[1:-1])
+
+	# if not terminal node
 	if elements != False:
 		# if only 1 child
 		if len(elements) == 2:
-			output += elements[0] + " "
-			temp = binarizeLeft(elements[1],elements[0],"")
+			# if vertical order is 2 and not root node add parent 
+			if vorder == 2 and parent != "":
+				output += elements[0] + "^" + parent + " "
+			# if not, dot not add parent
+			else:
+				output += elements[0] + " "
+
+			# binarize only child and update output and root
+			temp = binarizeLeft(elements[1],elements[0])
 			output += temp[0]
+			root = elements[0]
 
 		# if 2 children or more
 		elif len(elements) > 2:
-			# get root element of this level
+			# update root element
 			root = elements[0]
-			output += root + " "
+
+			# if vertical order is 2 add parent
+			if vorder == 2:
+				output += elements[0] + "^" + parent + " "
+			# if not do not add parent
+			else:
+				output += elements[0] + " "
 
 			# binarize first element and get tag
-			temp = binarizeLeft(elements[1],root,"")
+			# put tag in siblings
+			temp = binarizeLeft(elements[1],root)
 			output += temp[0]
 			lastsib = temp[1]
 			siblings = [lastsib]
 
-			# add siblings to other elements
+			# binarize rest of children and add siblings
 			for el in elements[2:]:
-				output += " (@" + root + "->_" + "_".join(siblings) + " "
-				temp = binarizeLeft(el,root,lastsib)
+				# if vertical order is 2 add parent and siblings
+				if vorder == 2:
+					output += " (@" + root + "^" + parent + "->_" + "_".join(siblings) + " "
+				# if not, only add siblings
+				else:
+					output += " (@" + root + "->_" + "_".join(siblings) + " "
+
+				# get binarized line and update siblings
+				temp = binarizeLeft(el,root)
 				output += temp[0]
 				lastsib = temp[1]
 				siblings = updateSibilings(siblings,lastsib)
 				right += ")"
 	# terminal node
 	else:
+		# return line and head of node
 		return [line,getTerminalTag(line)]
 
-	#print output
-
+	# return output
 	return [left + output + right,root]
 
-#print binarizeLeft("(ROOT (S (NP (NNP Ms.) (NNP Haag)) (VP (VBZ plays) (NP (NNP Elianti))) (. .)))"
-#					,"","")[0].strip()
 
 
-
-
-def startBinarize(line):
-	left = "("
-	binarized = ""
-	right = ")"
-	elements = getSubStrings(line[1:-1])
-
-	root = elements[0]
-	prevel = []
-
-	for el in elements[1:]:
-		binarized += binarizeLeft(el,root,prevel)
-		if len(prevel) < 2:
-			prevel.append(el)
-		else:
-			prevel = prevel[1:]
-			prevel.append(el)
-		right += ")"
-
-
-	return left + root + binarized + right
 
 ############## main code ###############
 for line in inputlines:
 	if line == "\n":
 		outputfile.write('\n')
 		continue
-	outputfile.write(binarizeLeft(line,"","")[0].strip() + "\n")
+	outputfile.write(binarizeLeft(line,"")[0].strip() + "\n")
+
+outputfile.close()
