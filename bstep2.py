@@ -22,7 +22,7 @@ parser.add_option("-v", "--vertical", dest="vertical")
 if options.input:
 	inputfile = options.input
 else:
-	inputfile = "data/small.txt"
+	inputfile = "data/train20.txt"
 
 # if output assigned
 if options.output:
@@ -94,11 +94,21 @@ def getTerminalTag(element):
 	elements = element.split()
 	return elements[0][1:]
 
+def updateSibilings(siblings, newsib):
+	if len(siblings) < 2:
+		siblings.append(newsib)
+	else:
+		siblings.append(newsib)
+		siblings = siblings[1:]
+	return siblings
+
+
 def binarizeLeft(line, parent, siblings):
 	# init variables
 	left = " ("
 	right = ")"
 	output = ""
+	root = ""
 
 	# get tree elements
 	elements = getSubStrings(line[1:-1])
@@ -119,27 +129,26 @@ def binarizeLeft(line, parent, siblings):
 			temp = binarizeLeft(elements[1],root,"")
 			output += temp[0]
 			lastsib = temp[1]
+			siblings = [lastsib]
 
 			# add siblings to other elements
 			for el in elements[2:]:
-				output += " (@" + root + "->_" + lastsib + " "
-				print el + "duhhhh \n"
+				output += " (@" + root + "->_" + "_".join(siblings) + " "
 				temp = binarizeLeft(el,root,lastsib)
 				output += temp[0]
 				lastsib = temp[1]
+				siblings = updateSibilings(siblings,lastsib)
 				right += ")"
-				print "		" + temp[0]
 	# terminal node
 	else:
 		return [line,getTerminalTag(line)]
 
 	#print output
 
-	return left + output + right
+	return [left + output + right,root]
 
-
-print binarizeLeft("(S (NP (NNP Ms.) (NNP Haag)) (VP (VBZ plays) (NP (NNP Elianti))) (. .))"
-					,"","").strip()
+#print binarizeLeft("(ROOT (S (NP (NNP Ms.) (NNP Haag)) (VP (VBZ plays) (NP (NNP Elianti))) (. .)))"
+#					,"","")[0].strip()
 
 
 
@@ -166,8 +175,8 @@ def startBinarize(line):
 	return left + root + binarized + right
 
 ############## main code ###############
-'''for line in inputlines:
+for line in inputlines:
 	if line == "\n":
 		outputfile.write('\n')
 		continue
-	outputfile.write(startBinarize(line).strip() + "\n")'''
+	outputfile.write(binarizeLeft(line,"","")[0].strip() + "\n")
