@@ -7,6 +7,7 @@
 # Command-line:
 # (1): python bstep2.py -i [non-binarized] -o [binarized] -c [number] -v [number]
 from optparse import OptionParser
+import time
 
 # parse options
 parser = OptionParser()
@@ -21,7 +22,7 @@ parser.add_option("-v", "--vertical", dest="vertical")
 if options.input:
 	inputfile = options.input
 else:
-	inputfile = "data/small.txt"
+	inputfile = "data/test20.txt"
 
 # if output assigned
 if options.output:
@@ -122,7 +123,7 @@ def binarizeLeft(line, parent):
 	if elements != False:
 		# if only 1 child
 		if len(elements) == 2:
-			# if vertical order is 2 and not root node add parent 
+			# if vertical order is 2 and not root node add parent
 			if vorder == 2 and parent != "":
 				output += elements[0] + "^" + parent + " "
 			# if not, dot not add parent
@@ -180,10 +181,13 @@ def binarizeLeft(line, parent):
 
 
 ############## main code ###############
+start = time.time()
 for line in inputlines:
 	if line == "\n":
 		outputfile.write('\n')
 		continue
 	outputfile.write(binarizeLeft(line,"")[0].strip() + "\n")
+end = time.time()
 
+print end - start
 outputfile.close()
