@@ -13,8 +13,8 @@ from optparse import OptionParser
 parser = OptionParser()
 parser.add_option("-i", "--input", dest="input")
 parser.add_option("-o", "--output", dest="output")
-parser.add_option("-h", "--output", dest="horizontal")
-parser.add_option("-v", "--output", dest="vertical")
+parser.add_option("-y", "--horizontal", dest="horizontal")
+parser.add_option("-v", "--vertical", dest="vertical")
 
 (options,args) = parser.parse_args()
 
@@ -22,7 +22,7 @@ parser.add_option("-v", "--output", dest="vertical")
 if options.input:
 	inputfile = options.input
 else:
-	inputfile = "data/train20.txt"
+	inputfile = "data/small.txt"
 
 # if output assigned
 if options.output:
@@ -90,23 +90,11 @@ def getSubStrings(line):
 
 	return elements
 
-def binarizeRight(elements, givenroot):
-	# first left of right does not contain binarization
-	left = binarizeLeft(elements[0])
-	temphead = left.split()[0][1:]
-	right = ""
-	output = " "
-	
-	# every right is a left with binarization
-	for el in elements[1:]:
-		givenroot += "_" + temphead
-		output += givenroot + " " + binarizeLeft(el) 
-		right += ")"
+def getTerminalTag(element):
+	elements = element.split()
+	return elements[0][1:]
 
-	return left + output + right
-
-
-def binarizeLeft(line):
+def binarizeLeft(line, parent, siblings):
 	# init variables
 	left = " ("
 	right = ")"
@@ -114,28 +102,72 @@ def binarizeLeft(line):
 
 	# get tree elements
 	elements = getSubStrings(line[1:-1])
-
-	# if non terminal node
 	if elements != False:
+		# if only 1 child
+		if len(elements) == 2:
+			output += elements[0] + " "
+			temp = binarizeLeft(elements[1],elements[0],"")
+			output += temp[0]
 
-		# add root to left
-		left += elements[0]
+		# if 2 children or more
+		elif len(elements) > 2:
+			# get root element of this level
+			root = elements[0]
+			output += root + " "
 
-		# if more than one node
-		if len(elements) > 2:
-			output = binarizeRight(elements[1:],"(@" + elements[0] + "->")
-		# else if single node besides tag
-		else:
-			left += binarizeLeft(elements[1])
-	# if terminal node
+			# binarize first element and get tag
+			temp = binarizeLeft(elements[1],root,"")
+			output += temp[0]
+			lastsib = temp[1]
+
+			# add siblings to other elements
+			for el in elements[2:]:
+				output += " (@" + root + "->_" + lastsib + " "
+				print el + "duhhhh \n"
+				temp = binarizeLeft(el,root,lastsib)
+				output += temp[0]
+				lastsib = temp[1]
+				right += ")"
+				print "		" + temp[0]
+	# terminal node
 	else:
-		output += line[1:-1]
+		return [line,getTerminalTag(line)]
+
+	#print output
 
 	return left + output + right
 
+
+print binarizeLeft("(S (NP (NNP Ms.) (NNP Haag)) (VP (VBZ plays) (NP (NNP Elianti))) (. .))"
+					,"","").strip()
+
+
+
+
+def startBinarize(line):
+	left = "("
+	binarized = ""
+	right = ")"
+	elements = getSubStrings(line[1:-1])
+
+	root = elements[0]
+	prevel = []
+
+	for el in elements[1:]:
+		binarized += binarizeLeft(el,root,prevel)
+		if len(prevel) < 2:
+			prevel.append(el)
+		else:
+			prevel = prevel[1:]
+			prevel.append(el)
+		right += ")"
+
+
+	return left + root + binarized + right
+
 ############## main code ###############
-for line in inputlines:
+'''for line in inputlines:
 	if line == "\n":
 		outputfile.write('\n')
 		continue
-	outputfile.write(binarizeLeft(line).strip() + "\n")
+	outputfile.write(startBinarize(line).strip() + "\n")'''
